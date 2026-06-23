@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>Sireh Park GIS — Tree Donation Monitoring</title>
+<link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Leaflet CSS + JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-icon">🌳</span>
+    <div>
+      <p class="brand-name">TreeCSR</p>
+      <p class="brand-sub">Tree Donation Monitoring</p>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#" class="nav-item active" data-view="dashboard">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 1116 0A8 8 0 012 10zm6-1a1 1 0 112 0 1 1 0 01-2 0zm4 0a1 1 0 112 0 1 1 0 01-2 0z"/></svg>
+      Dashboard
+    </a>
+    <a href="#" class="nav-item" data-view="map">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 3.293L14 7v12.414l2.293-2.293A1 1 0 0018 14V4a1 1 0 00-.293-.707z" clip-rule="evenodd"/></svg>
+      Map View
+    </a>
+    <a href="#" class="nav-item" data-view="records">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"/></svg>
+      Records
+    </a>
+    <a href="#" class="nav-item" data-view="add">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+      Add Tree
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <p class="footer-label">Last synced</p>
+    <p class="footer-val" id="last-sync">—</p>
+  </div>
+</aside>
+
+<!-- ══ MAIN CONTENT ════════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1 class="page-title" id="page-title">Dashboard Overview</h1>
+      <p class="page-sub">Visualize CSR trees · Iskandar Puteri</p>
+    </div>
+    <div class="topbar-right">
+      <div class="filter-pills" id="status-filters">
+        <button class="pill active" data-status="all">All</button>
+        <button class="pill" data-status="Alive">Alive</button>
+        <button class="pill" data-status="At Risk">At Risk</button>
+        <button class="pill" data-status="Dead">Dead</button>
+        <button class="pill" data-status="New Planting">New Planting</button>
+      </div>
+      <button class="btn-refresh" id="btn-refresh">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="15"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ VIEW: DASHBOARD ═══════════════════════════════════════════════════ -->
+  <div id="view-dashboard" class="view active">
+
+    <!-- KPI ROW -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(0,230,118,0.1);border-color:rgba(0,230,118,0.2);">🌳</div>
+        <div><p class="kpi-label">Total Trees</p><p class="kpi-value" id="k-total">—</p><p class="kpi-meta">across all zones</p></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(0,230,118,0.08);border-color:rgba(0,230,118,0.15);">✅</div>
+        <div><p class="kpi-label">Alive / Healthy</p><p class="kpi-value" id="k-live" style="color:#00E676;">—</p><p class="kpi-meta" id="k-live-pct">—% of total</p></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(255,179,0,0.1);border-color:rgba(255,179,0,0.2);">⚠️</div>
+        <div><p class="kpi-label">At Risk</p><p class="kpi-value" id="k-risk" style="color:#FFB300;">—</p><p class="kpi-meta">needs attention</p></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(248,81,73,0.1);border-color:rgba(248,81,73,0.2);">💀</div>
+        <div><p class="kpi-label">Dead</p><p class="kpi-value" id="k-dead" style="color:#F85149;">—</p><p class="kpi-meta">removal pending</p></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(88,166,255,0.1);border-color:rgba(88,166,255,0.2);">🌱</div>
+        <div><p class="kpi-label">New Planting</p><p class="kpi-value" id="k-new" style="color:#58A6FF;">—</p><p class="kpi-meta">recently planted</p></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(210,168,255,0.1);border-color:rgba(210,168,255,0.2);">📏</div>
+        <div><p class="kpi-label">Avg. DBH</p><p class="kpi-value" id="k-dbh">—</p><p class="kpi-meta">diameter breast height (cm)</p></div>
+      </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="grid-main">
+
+      <!-- MAP PANEL -->
+      <div class="panel panel-map">
+        <div class="panel-head">
+          <p class="panel-title">Tree Plot Map</p>
+          <div class="map-legend">
+            <span class="leg"><span class="leg-dot" style="background:#3B7D0E"></span>Alive</span>
+            <span class="leg"><span class="leg-dot" style="background:#C07010"></span>At Risk</span>
+            <span class="leg"><span class="leg-dot" style="background:#B03030"></span>Dead</span>
+            <span class="leg"><span class="leg-dot" style="background:#1A5C9E"></span>New Planting</span>
+            <span class="leg" style="color:#aaa;font-size:11px;">• Circle size = DBH</span>
+          </div>
+        </div>
+        <!-- Leaflet map container -->
+        <div id="dashboard-map" class="leaflet-map-box"></div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="right-col">
+        <div class="panel panel-donut">
+          <p class="panel-title">Status Breakdown</p>
+          <div class="donut-wrap">
+            <canvas id="donut-chart"></canvas>
+            <div class="donut-center">
+              <p class="donut-num" id="donut-total">—</p>
+              <p class="donut-lbl">Trees</p>
+            </div>
+          </div>
+          <div class="donut-legend" id="donut-legend"></div>
+        </div>
+        <div class="panel panel-species">
+          <p class="panel-title">Species Breakdown</p>
+          <div id="species-bars"></div>
+        </div>
+        <div class="panel panel-dbh">
+          <p class="panel-title">DBH Distribution (cm)</p>
+          <div class="chart-wrap-sm"><canvas id="dbh-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT TABLE -->
+    <div class="panel panel-table">
+      <div class="panel-head">
+        <p class="panel-title">Recent Submissions</p>
+        <span class="table-count" id="table-count">— records</span>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>No.</th><th>Tree ID</th><th>Type</th><th>Species</th>
+              <th>Height (m)</th><th>DBH (cm)</th><th>Status</th>
+              <th>Date</th><th>Submitted by</th><th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr><td colspan="10" class="loading-row">Loading data…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /view-dashboard -->
+
+
+  <!-- ══ VIEW: MAP FULL ═══════════════════════════════════════════════════ -->
+  <div id="view-map" class="view">
+    <div class="panel" style="height:calc(100vh - 120px);display:flex;flex-direction:column;">
+      <div class="panel-head" style="margin-bottom:10px;">
+        <p class="panel-title">Full Map View — Sireh Park Iskandar Puteri</p>
+        <div class="map-legend">
+          <span class="leg"><span class="leg-dot" style="background:#3B7D0E"></span>Alive</span>
+          <span class="leg"><span class="leg-dot" style="background:#C07010"></span>At Risk</span>
+          <span class="leg"><span class="leg-dot" style="background:#B03030"></span>Dead</span>
+          <span class="leg"><span class="leg-dot" style="background:#1A5C9E"></span>New Planting</span>
+        </div>
+      </div>
+      <div id="fullmap" style="flex:1;border-radius:10px;overflow:hidden;min-height:0;"></div>
+    </div>
+  </div>
+
+
+  <!-- ══ VIEW: RECORDS ════════════════════════════════════════════════════ -->
+  <div id="view-records" class="view">
+    <div class="panel" style="height:calc(100vh - 120px);display:flex;flex-direction:column;">
+      <div class="panel-head" style="margin-bottom:10px;">
+        <p class="panel-title">All Tree Records</p>
+        <input class="search-input" id="record-search" type="text" placeholder="Search by ID, species, status…">
+      </div>
+      <div class="table-scroll" style="flex:1;min-height:0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>No.</th><th>Tree ID</th><th>Input Type</th><th>Species</th>
+              <th>Latitude</th><th>Longitude</th><th>Height (m)</th><th>DBH (cm)</th>
+              <th>Status</th><th>Date</th><th>Email</th><th>Remarks</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="records-body">
+            <tr><td colspan="13" class="loading-row">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══ VIEW: ADD TREE ═══════════════════════════════════════════════════ -->
+  <div id="view-add" class="view">
+    <div class="form-container">
+      <div class="panel form-panel">
+        <p class="panel-title">Add / Edit Tree Record</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Tree No. <span class="req">*</span></label>
+            <input type="number" id="f-tree-no" placeholder="e.g. 23025">
+          </div>
+          <div class="form-group">
+            <label>Tree ID <span class="req">*</span></label>
+            <input type="text" id="f-tree-id" placeholder="e.g. SIREHPARK01205">
+          </div>
+          <div class="form-group">
+            <label>Input Type <span class="req">*</span></label>
+            <select id="f-input-type">
+              <option>RegisterTree</option>
+              <option>UpdateTree</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Species <span class="req">*</span></label>
+            <input type="text" id="f-species" placeholder="e.g. Bintagor Laut">
+          </div>
+          <div class="form-group">
+            <label>Latitude <span class="req">*</span></label>
+            <input type="number" id="f-lat" step="0.0000001" placeholder="e.g. 1.4654505">
+          </div>
+          <div class="form-group">
+            <label>Longitude <span class="req">*</span></label>
+            <input type="number" id="f-lng" step="0.0000001" placeholder="e.g. 103.6454533">
+          </div>
+          <div class="form-group">
+            <label>Tree Height (m)</label>
+            <input type="number" id="f-height" step="0.1" placeholder="e.g. 3.5">
+          </div>
+          <div class="form-group">
+            <label>DBH (cm)</label>
+            <input type="number" id="f-dbh" step="0.01" placeholder="e.g. 0.65">
+          </div>
+          <div class="form-group">
+            <label>Tree Status <span class="req">*</span></label>
+            <select id="f-status">
+              <option>Alive</option>
+              <option>At Risk</option>
+              <option>Dead</option>
+              <option>New Planting</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date <span class="req">*</span></label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="f-email" placeholder="submitter@email.com">
+          </div>
+          <div class="form-group form-full">
+            <label>Remarks</label>
+            <textarea id="f-remarks" rows="2" placeholder="Optional notes…"></textarea>
+          </div>
+          <div class="form-actions form-full">
+            <button class="btn-secondary" id="btn-clear">Clear</button>
+            <button class="btn-primary" id="btn-submit">Save Tree Record</button>
+          </div>
+        </div>
+        <div class="form-msg" id="form-msg"></div>
+      </div>
+
+      <!-- Leaflet pick-location map -->
+      <div class="panel form-map-panel">
+        <p class="panel-title">Pick Location on Map</p>
+        <p class="panel-sub">Click anywhere on the map to set coordinates</p>
+        <div id="form-map" style="height:340px;border-radius:10px;overflow:hidden;"></div>
+        <div class="coord-display" style="margin-top:10px;">
+          <span>Lat: <b id="preview-lat">—</b></span>
+          <span>Lng: <b id="preview-lng">—</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="modal" style="display:none;">
+  <div class="modal">
+    <p class="modal-title">Delete Tree Record</p>
+    <p class="modal-body">Are you sure you want to delete <b id="modal-tree-id"></b>? This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn-danger" id="modal-confirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="assets/js/dashboard.js"></script>
+</body>
+</html>
