@@ -2,6 +2,18 @@
 ### Deployment Guide for InfinityFree
 
 ---
+GROUP MEMBERS
+1. SHAHRUL IZZAT BIN AHEMAD
+2. MARWAN BIN MUHAMMAD SUFIAN
+
+OBJECTIVES
+- To develop an interactive web-based Geographic Information System (GIS) dashboard for monitoring tree donations in Sireh Park.
+- To collate and display tree planting information received from a number of CSR donors.
+- To provide real-time KPIs such as total trees, survival rate and species diversity.
+- Enable spatial exploration of tree locations with symbology to indicate survival status and maintenance priority.
+- To allow filtering by tree status and data categories.
+- To aid park management in identifying trees in need of maintenance, facilitating data-driven decision-making.
+
 
 ## File Structure
 ```
